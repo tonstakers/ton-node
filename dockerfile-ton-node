@@ -1,0 +1,32 @@
+# Stage 1: Build
+FROM ubuntu:24.04 AS sources
+
+ENV DEBIAN_FRONTEND=noninteractive
+WORKDIR /app
+
+
+RUN apt update
+RUN apt install --no-install-recommends -y  wget unzip apt-transport-https ca-certificates
+
+RUN wget https://github.com/ton-blockchain/ton/releases/download/v2024.06/ton-linux-x86_64.zip
+RUN unzip ton-linux-x86_64.zip
+RUN chmod +x validator-engine
+
+RUN ls -la
+
+
+# Stage 2: Run
+FROM ubuntu:24.04
+
+# create user and group
+RUN groupadd -g 1001 tonuser && useradd -u 1001 -g tonuser -d /opt/ton-node -s /sbin/nologin -c "TON User" tonuser
+
+WORKDIR /opt/ton-node
+COPY --from=sources /app/validator-engine /usr/local/bin
+RUN chown -R 1001:1001 /opt/ton-node
+
+# set specific user
+USER tonuser
+
+
+CMD ["validator-engine"]
